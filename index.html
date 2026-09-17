@@ -189,12 +189,15 @@
   .empty-state p{max-width:420px; font-size:13px; line-height:1.6; margin:0}
 
   .day-sep{
-    text-align:center; margin:22px 0 16px; position:relative;
+    text-align:center; margin:22px 0 16px;
+    position:sticky; top:0; z-index:6; pointer-events:none;
   }
   .day-sep span{
     background:var(--paper-2); color:var(--ink-dim);
     font-family:var(--mono); font-size:11px; letter-spacing:.4px;
     padding:5px 14px; border-radius:12px; border:1px solid var(--line);
+    pointer-events:auto;
+    box-shadow:0 2px 8px rgba(0,0,0,0.35);
   }
 
   .sys-msg{
@@ -700,6 +703,12 @@
     var hh = d.getHours(), mm = d.getMinutes();
     return (hh<10?"0":"")+hh+":"+(mm<10?"0":"")+mm;
   }
+  function pad2(n){ return (n<10?"0":"")+n; }
+  function fmtFullTimestamp(d){
+    // dd/mm/aaaa, hh:mm:ss — mismo formato que el _chat.txt original, para trazabilidad directa
+    return pad2(d.getDate())+"/"+pad2(d.getMonth()+1)+"/"+d.getFullYear()+", "+
+           pad2(d.getHours())+":"+pad2(d.getMinutes())+":"+pad2(d.getSeconds());
+  }
   function dayKey(d){ return d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate(); }
 
   function initials(name){
@@ -796,7 +805,8 @@
         }
         var meta = document.createElement("span");
         meta.className = "meta";
-        meta.textContent = fmtTime(m.ts);
+        meta.textContent = fmtFullTimestamp(m.ts);
+        meta.title = "Registrado como: " + m.dateStr + ", " + m.timeStr;
         bubble.appendChild(meta);
 
         col.appendChild(bubble);
