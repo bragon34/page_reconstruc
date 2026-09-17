@@ -190,14 +190,24 @@
 
   .day-sep{
     text-align:center; margin:22px 0 16px;
-    position:sticky; top:0; z-index:6; pointer-events:none;
   }
   .day-sep span{
     background:var(--paper-2); color:var(--ink-dim);
     font-family:var(--mono); font-size:11px; letter-spacing:.4px;
     padding:5px 14px; border-radius:12px; border:1px solid var(--line);
-    pointer-events:auto;
-    box-shadow:0 2px 8px rgba(0,0,0,0.35);
+  }
+
+  #dateBar{
+    display:none;
+    text-align:center;
+    padding:7px 0;
+    background:var(--paper-1);
+    border-bottom:1px solid var(--line);
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.3px;
+    color:var(--ink-dim);
+    flex:0 0 auto;
   }
 
   .sys-msg{
@@ -366,6 +376,7 @@
         <span class="sub" id="chatSub"></span>
       </div>
     </div>
+    <div id="dateBar"></div>
     <div id="timeline">
       <div class="empty-state">
         <span class="glyph">✦</span>
@@ -391,6 +402,7 @@
   var matches = [];
   var matchIdx = -1;
   var renderToken = 0;
+  var dayMarkers = [];     // [{node, label}] built on each render, used for the floating date bar
 
   var PALETTE = ["#c9a05c","#7ea1c9","#9bc98a","#c98a9b","#a08ac9","#c9b45c","#5cc9b0","#c97a5c","#8ac9c2","#b08ac9"];
 
@@ -398,6 +410,7 @@
   var $ = function(id){ return document.getElementById(id); };
   var dropzone = $("dropzone"), fileInput = $("fileInput");
   var timeline = $("timeline");
+  var dateBar = $("dateBar");
   var loadOverlay = $("loadOverlay"), loadText = $("loadText");
   var lightbox = $("lightbox"), lbContent = $("lbContent");
   var sidebar = $("sidebar"), menuBtn = $("menuBtn");
@@ -734,6 +747,8 @@
   function renderAll(){
     var token = ++renderToken;
     timeline.innerHTML = "";
+    dayMarkers = [];
+    dateBar.style.display = "none";
     if(!messages.length) return;
 
     var frag = document.createDocumentFragment();
@@ -749,8 +764,10 @@
         if(dk !== lastDay){
           var sep = document.createElement("div");
           sep.className = "day-sep";
-          sep.innerHTML = "<span>"+fmtDayHeader(m.ts)+"</span>";
+          var dayLabel = fmtDayHeader(m.ts);
+          sep.innerHTML = "<span>"+dayLabel+"</span>";
           frag.appendChild(sep);
+          dayMarkers.push({ node: sep, label: dayLabel });
           lastDay = dk;
           lastSender = null;
         }
@@ -819,11 +836,30 @@
       } else {
         timeline.appendChild(frag);
         timeline.scrollTop = timeline.scrollHeight;
+        updateDateBar();
       }
     }
     // append progressively without blocking, but keep single fragment append at end for speed
     step();
   }
+
+  var dateBarTicking = false;
+  function updateDateBar(){
+    if(!dayMarkers.length){ dateBar.style.display = "none"; return; }
+    var timelineTop = timeline.getBoundingClientRect().top;
+    var current = dayMarkers[0];
+    for(var k = 0; k < dayMarkers.length; k++){
+      var r = dayMarkers[k].node.getBoundingClientRect();
+      if(r.top - timelineTop <= 34) current = dayMarkers[k]; else break;
+    }
+    dateBar.textContent = current.label;
+    dateBar.style.display = "block";
+  }
+  timeline.addEventListener("scroll", function(){
+    if(dateBarTicking) return;
+    dateBarTicking = true;
+    requestAnimationFrame(function(){ updateDateBar(); dateBarTicking = false; });
+  });
 
   function renderMedia(fname){
     var wrap = document.createElement("div");
